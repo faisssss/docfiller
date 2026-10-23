@@ -1,0 +1,9 @@
+{
+  "name": "docfiller",
+  "private": true,
+  "description": "Fills the South Africa visa letter templates for one student at a time.",
+  "scripts": {
+    "build": "python3 tools/build_templates.py",
+    "test": "node --test"
+  }
+}

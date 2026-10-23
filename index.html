@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Visa Letter Filler</title>
+<style>
+  :root {
+    --bg: #f4f5f7; --card: #fff; --ink: #1d2330; --muted: #667085; --line: #d9dde3;
+    --accent: #1f5fbf; --accent-ink: #fff; --fill: #e6f0ff; --miss: #fde8e8; --miss-ink: #b42318;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  header { padding: 18px 24px 8px; }
+  header h1 { margin: 0; font-size: 22px; }
+  header p { margin: 4px 0 0; color: var(--muted); }
+  main { display: grid; grid-template-columns: minmax(340px, 480px) 1fr; gap: 20px; padding: 12px 24px 40px; align-items: start; }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; padding: 12px 16px 40px; } header { padding: 16px 16px 4px; } }
+
+  form section { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px 6px; margin-bottom: 14px; }
+  form h2 { margin: 0 0 10px; font-size: 15px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
+  .row.three { grid-template-columns: 1fr 1fr 1fr; }
+  @media (max-width: 420px) { .row, .row.three { grid-template-columns: 1fr; } }
+  label { display: block; margin-bottom: 12px; font-weight: 600; font-size: 13.5px; }
+  label small { font-weight: 400; color: var(--muted); }
+  input[type=text], input[type=number], input[type=email], input[type=tel], input[type=date], textarea {
+    display: block; width: 100%; margin-top: 4px; padding: 8px 10px; font: inherit; color: inherit;
+    border: 1px solid var(--line); border-radius: 7px; background: #fff;
+  }
+  textarea { min-height: 76px; resize: vertical; }
+  input:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: transparent; }
+  .words { display: block; min-height: 1.2em; margin-top: 3px; font-weight: 400; font-size: 12.5px; color: var(--accent); }
+  .words.bad { color: var(--miss-ink); }
+
+  .seg { display: flex; margin-top: 4px; border: 1px solid var(--line); border-radius: 7px; overflow: hidden; }
+  .seg label { flex: 1; margin: 0; font-weight: 500; }
+  .seg input { position: absolute; opacity: 0; pointer-events: none; }
+  .seg span { display: block; padding: 8px 6px; text-align: center; cursor: pointer; background: #fff; }
+  .seg label + label span { border-left: 1px solid var(--line); }
+  .seg input:checked + span { background: var(--accent); color: var(--accent-ink); }
+  .seg input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: -3px; }
+  .check { display: flex; gap: 8px; align-items: center; font-weight: 500; }
+
+  .actions { position: sticky; bottom: 0; display: flex; gap: 10px; padding: 12px 0; background: linear-gradient(transparent, var(--bg) 30%); }
+  button { font: inherit; font-weight: 600; padding: 10px 16px; border-radius: 8px; border: 1px solid var(--line); background: #fff; color: var(--ink); cursor: pointer; }
+  button.primary { flex: 1; background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  button:disabled { opacity: .6; cursor: wait; }
+
+  .preview { position: sticky; top: 12px; }
+  .tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+  .tabs button { padding: 7px 12px; font-size: 13.5px; }
+  .tabs button[aria-selected=true] { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .status { margin: 0 0 10px; font-size: 13.5px; color: var(--muted); }
+  .status.warn { color: var(--miss-ink); }
+  .page { background: #fff; border: 1px solid var(--line); border-radius: 4px; box-shadow: 0 2px 10px rgba(0,0,0,.06);
+          padding: 40px 48px; max-height: calc(100vh - 140px); overflow: auto;
+          font: 15px/1.5 "Times New Roman", Times, serif; color: #000; }
+  @media (max-width: 900px) { .preview { position: static; } .page { max-height: none; padding: 24px 20px; } }
+  .page p { margin: 0 0 8px; min-height: 1em; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .page .li { padding-left: 1.6em; text-indent: -1.1em; }
+  .page .gap { display: inline-block; width: 3em; }
+  .page .foot { margin-top: 24px; padding-top: 8px; border-top: 1px dashed var(--line); font: 13px Arial, sans-serif; }
+  .page mark { background: var(--fill); color: inherit; border-radius: 2px; }
+  .page mark.miss { background: var(--miss); color: var(--miss-ink); font: italic 12.5px system-ui, sans-serif; padding: 0 3px; }
+  .note { font-size: 12.5px; color: var(--muted); margin-top: 8px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Visa Letter Filler</h1>
+  <p>Fill in one student, check the preview, download all 4 letters. Nothing is saved or sent anywhere — it all stays in this browser tab.</p>
+</header>
+
+<main>
+  <form id="form" autocomplete="off" novalidate>
+    <section>
+      <h2>Student</h2>
+      <label>Student's full name <input type="text" name="sName" required></label>
+      <div class="row">
+        <div><label>Student is</label>
+          <div class="seg" role="radiogroup">
+            <label><input type="radio" name="sGender" value="son" checked><span>Son</span></label>
+            <label><input type="radio" name="sGender" value="daughter"><span>Daughter</span></label>
+          </div><br></div>
+        <label>Passport no. <input type="text" name="passport" required></label>
+      </div>
+      <div class="row">
+        <label>Student mobile <small>(Self Affidavit footer)</small><input type="tel" name="sMobile" required></label>
+        <label>Student email <input type="email" name="sEmail" required></label>
+      </div>
+    </section>
+
+    <section>
+      <h2>Parent (sponsor)</h2>
+      <div><label>Sponsoring parent</label>
+        <div class="seg" role="radiogroup">
+          <label><input type="radio" name="sponsor" value="father" checked><span>Father</span></label>
+          <label><input type="radio" name="sponsor" value="mother"><span>Mother</span></label>
+        </div><br></div>
+      <div class="row">
+        <label>Sponsor's full name <input type="text" name="pName" required></label>
+        <label>Other parent's name <input type="text" name="spName" required></label>
+      </div>
+      <div class="row">
+        <label>Sponsor's age <input type="number" name="pAge" min="18" max="120" required></label>
+        <label>Profession <input type="text" name="pProfession" required placeholder="e.g. Engineer"></label>
+      </div>
+      <div><label>Main income from</label>
+        <div class="seg" role="radiogroup">
+          <label><input type="radio" name="incomeType" value="salary" checked><span>Salary</span></label>
+          <label><input type="radio" name="incomeType" value="business"><span>Business</span></label>
+        </div><br></div>
+      <div class="row">
+        <label>Parent mobile <small>(other letters' footer)</small><input type="tel" name="pMobile" required></label>
+        <label>Parent email <input type="email" name="pEmail" required></label>
+      </div>
+    </section>
+
+    <section>
+      <h2>Family &amp; address</h2>
+      <label>Siblings' names <small>(optional — separate with commas)</small><input type="text" name="siblings"></label>
+      <label>Home address <small>(one line with commas, or one part per line)</small><textarea name="address" required></textarea></label>
+    </section>
+
+    <section>
+      <h2>School</h2>
+      <div class="seg" role="radiogroup">
+        <label><input type="radio" name="school" value="mach1" checked><span>Mach1 · Springs</span></label>
+        <label><input type="radio" name="school" value="worcester"><span>Worcester Flying School</span></label>
+      </div><br>
+    </section>
+
+    <section>
+      <h2>Assets <small style="text-transform:none;letter-spacing:0">— amounts in rupees, words are written for you</small></h2>
+      <div class="row three">
+        <label>Property (cents) <input type="text" name="propCents" required></label>
+        <label>Place <input type="text" name="propPlace" required></label>
+        <label>District <input type="text" name="propDistrict" required></label>
+      </div>
+      <label>Property value <input type="text" name="propValue" inputmode="numeric" required placeholder="e.g. 4500000"><span class="words" data-for="propValue"></span></label>
+      <div class="row">
+        <label>Gold (sovereigns) <input type="text" name="goldSov" required></label>
+        <label>Gold value <input type="text" name="goldValue" inputmode="numeric" required><span class="words" data-for="goldValue"></span></label>
+      </div>
+      <label>Annual income <input type="text" name="incomeValue" inputmode="numeric" required><span class="words" data-for="incomeValue"></span></label>
+    </section>
+
+    <section>
+      <h2>Date on the letters</h2>
+      <div class="row">
+        <label>Date <input type="date" name="date"></label>
+        <label class="check" style="margin-top:22px"><input type="checkbox" name="dateBlank"> Leave blank (write by hand)</label>
+      </div>
+    </section>
+
+    <div class="actions">
+      <button type="submit" class="primary" id="download">Download all 4 letters (.zip)</button>
+      <button type="button" id="clear">Clear</button>
+    </div>
+  </form>
+
+  <section class="preview" aria-label="Preview">
+    <div class="tabs" id="tabs" role="tablist"></div>
+    <p class="status" id="status"></p>
+    <div class="page" id="page"></div>
+    <p class="note">Blue = filled from the form. Red = still empty. <button type="button" id="downloadOne" style="padding:4px 10px;font-size:12.5px">Download just this letter</button></p>
+  </section>
+</main>
+
+<script src="vendor/jszip.min.js"></script>
+<script src="templates.js"></script>
+<script src="fill.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
