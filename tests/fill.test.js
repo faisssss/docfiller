@@ -7,7 +7,9 @@ const JSZip = require("../vendor/jszip.min.js");
 const F = require("../fill.js");
 
 const ROOT = path.join(__dirname, "..");
-const FILES = ["1_Sponsorship_Letter", "2_Self_Affidavit", "3_Affidavit_of_Support", "4_Financial_Support_Letter"];
+const FILES = ["1_Sponsorship_Letter", "2_Self_Affidavit", "3_Affidavit_of_Support", "4_Financial_Support_Letter",
+  "5_Covering_Letter"];
+const STUDENT_SIGNED = ["2_Self_Affidavit", "5_Covering_Letter"];
 
 const SON_FATHER = {
   sName: "Arjun Nair", sGender: "son", passport: "z1234567", sMobile: "9000000001", sEmail: "arjun@example.com",
@@ -61,7 +63,7 @@ for (const file of FILES) {
     assert.ok(text.includes("Arjun Nair"));
     assert.ok(text.includes("Mach1 Aviation Academy"));
     assert.ok(!/\bher\b|\bshe\b|\bdaughter|Mrs\. Ravi/.test(text), "wrong gender wording");
-    assert.ok(text.includes(file === "2_Self_Affidavit" ? "9000000001" : "9000000002"));
+    assert.ok(text.includes(STUDENT_SIGNED.includes(file) ? "9000000001" : "9000000002"));
     assert.ok(text.includes("23/10/2026"));
   });
 
@@ -71,7 +73,8 @@ for (const file of FILES) {
     assert.ok(!text.includes("{{"));
     assert.ok(text.includes("Worcester Flying School"));
     assert.ok(!text.includes("Mach1") && !text.includes("Benoni"));
-    assert.ok(!/\bhis\b|\bhe\b|\bson\b/.test(text), "wrong gender wording");
+    const own = text.replace("containing his signature", "");  // fixed text about the passport officer
+    assert.ok(!/\bhis\b|\bhe\b|\bson\b/.test(own), "wrong gender wording");
     assert.ok(text.includes("    /    /2026"));
   });
 }
@@ -104,6 +107,20 @@ test("self affidavit and support letter wording", async () => {
   const f = (await fillText("4_Financial_Support_Letter", SON_FATHER)).text;
   assert.ok(f.includes("Financial support for Mr. Arjun Nair"));
   assert.ok(f.includes("I, Mr. Ravi Nair, father of Mr. Arjun Nair, that I will financially support my son for his studies"));
+});
+
+test("covering letter wording", async () => {
+  const a = (await fillText("5_Covering_Letter", SON_FATHER)).text;
+  assert.ok(a.includes("Date: 23/10/2026"));
+  assert.ok(a.includes("From,\nArjun Nair\nThekkethil House\nKakkanad\nErnakulam\nKerala 682030"));
+  assert.ok(a.includes("My passport number is Z1234567. I have been accepted into the Commercial Pilot license course at Mach1 Aviation Academy located in Springs Airfield."));
+  assert.ok(a.includes("I will be funded by my father for my course"));
+  assert.ok(a.includes("flight school Mach1 Aviation Academy at 9, 9th road, Vlakfontein, No-69-IR, Benoni 1501, South Africa."));
+  assert.ok(a.includes("Mob: +91 9000000001"));
+  const b = (await fillText("5_Covering_Letter", DAUGHTER_MOTHER)).text;
+  assert.ok(b.includes("Date:     /    /2026"));
+  assert.ok(b.includes("I will be funded by my mother for my course"));
+  assert.ok(b.includes("flight school Worcester Flying School at Vreugde Avenue 6, Worcester West, 850, South Africa."));
 });
 
 test("missing fields are reported", async () => {

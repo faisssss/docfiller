@@ -147,14 +147,16 @@
       propValue: prop.value, propWords: prop.words,
       goldSov: t("goldSov"), goldValue: gold.value, goldWords: gold.words,
       incomeValue: income.value, incomeWords: income.words,
-      // Footer contact: the student's on the Self Affidavit, the parent's elsewhere.
+      // Footer contact: the student's on the letters the student signs, the parent's elsewhere.
       parentContact: { footMob: t("pMobile"), footEmail: t("pEmail") },
       studentContact: { footMob: t("sMobile"), footEmail: t("sEmail") },
     };
   }
 
+  const STUDENT_LETTERS = new Set(["2_Self_Affidavit", "5_Covering_Letter"]);
+
   function valuesFor(file, values) {
-    const contact = file === "2_Self_Affidavit" ? values.studentContact : values.parentContact;
+    const contact = STUDENT_LETTERS.has(file) ? values.studentContact : values.parentContact;
     return Object.assign({}, values, contact);
   }
 

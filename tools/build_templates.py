@@ -91,6 +91,17 @@ SPECS = {
             "{{footMob}}", "{{footEmail}}",
         ],
     },
+    "5_Covering_Letter": {
+        "title": "Covering Letter",
+        "red": [
+            "{{sName}}", "{{addressBlock}}", "{{passport}}",
+            "{{school}}", "{{airfield}}", "{{pRel}}", "{{school}}",
+            "={{sa1}}", "={{sa2}}", "={{sa3}}", "=", "=",
+            "{{sName}}", "{{footMob}}", "{{footEmail}}",
+        ],
+        # Here the date shares a run with "Date:", so DATE_RE doesn't catch it.
+        "black": [("Date:    /     /2026        ", "Date: {{date}}")],
+    },
 }
 
 # The blank "  /    /2026" date in every letter becomes {{date}}; when the
