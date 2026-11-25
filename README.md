@@ -24,7 +24,8 @@ Fill the form, check the live preview (blue = filled, red = still empty), then p
 **Save all 5 letters as PDF** (one PDF, each letter starting on a new page) or
 **Save just this letter as PDF**. The browser's print window opens: choose **Save as PDF**
 as the destination (Safari on a Mac: **PDF ▾ → Save as PDF**, bottom left). The file name
-is filled in with the student's name. Press **Clear** before the next student.
+is filled in with the student's name. For Word files instead, use **Word (.zip)** (all 5 letters)
+or **…as Word** (the letter on screen). Press **Clear** before the next student.
 
 ## Built-in choices
 

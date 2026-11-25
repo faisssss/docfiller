@@ -100,9 +100,9 @@ test("self affidavit and support letter wording", async () => {
   assert.ok(s.includes("I, Ms. Meera Das D/O Mrs. Sudha Das, Rose Villa, Pattom, Thiruvananthapuram have applied in Worcester Flying School, Worcester Airfield"));
   assert.ok(s.includes("My Passport No. Z1234567"));
   const a = (await fillText("3_Affidavit_of_Support", SON_FATHER)).text;
-  assert.ok(a.includes("during his stay at 9, 9th road, Vlakfontein, No-69-IR, Benoni 1501 and SOUTH AFRICA."));
+  assert.ok(a.includes("during his stay at 9, 9th road, Vlakfontein, No-69-IR, Benoni 1501, SOUTH AFRICA."));
   const w = (await fillText("3_Affidavit_of_Support", DAUGHTER_MOTHER)).text;
-  assert.ok(w.includes("stay in Vreugde Avenue 6, Worcester West, 850 and SOUTH AFRICA,"));
+  assert.ok(w.includes("stay in Vreugde Avenue 6, Worcester West, 850, SOUTH AFRICA,"));
   const f = (await fillText("4_Financial_Support_Letter", SON_FATHER)).text;
   assert.ok(f.includes("Financial support for Mr. Arjun Nair"));
   assert.ok(f.includes("I, Mr. Ravi Nair, father of Mr. Arjun Nair, that I will financially support my son for his studies"));

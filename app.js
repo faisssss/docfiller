@@ -30,7 +30,7 @@
         else if (LAYOUT_RE.test(name)) files[name] = await zip.file(name).async("string");
       }
       await DocRender.loadEmbeddedFonts(zip);
-      return { file: t.file, title: t.title, files, parts };
+      return { file: t.file, title: t.title, bytes, files, parts };
     }));
   }
 
@@ -191,6 +191,34 @@
     window.print();
   }
 
+  function save(blob, filename) {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  }
+
+  // Word files: one letter as .docx, several as a .zip of .docx.
+  async function downloadWord(list) {
+    if (!confirmMissing(list)) return;
+    const student = safeName(readForm().sName);
+    const docs = [];
+    for (const t of list) docs.push({ t, data: (await F.fillDocx(JSZip, t.bytes, valuesFor(t))).data });
+    if (docs.length === 1) {
+      save(new Blob([docs[0].data], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" }),
+        `${student} - ${docs[0].t.title}.docx`);
+    } else {
+      const zip = new JSZip();
+      for (const { t, data } of docs) zip.file(`${student} - ${t.file[0]}. ${t.title}.docx`, data);
+      save(await zip.generateAsync({ type: "blob" }), `${student} - Visa Letters.zip`);
+    }
+    rememberOtherSchool();
+  }
+
+  const fail = (e) => alert("Something went wrong: " + e.message);
+
   // ---- Setup ---------------------------------------------------------------
 
   function today() {
@@ -217,6 +245,8 @@
     const t = templates[current];
     printLetters([t], `${safeName(readForm().sName)} - ${t.title}`);
   });
+  document.getElementById("wordAll").addEventListener("click", () => downloadWord(templates).catch(fail));
+  document.getElementById("wordOne").addEventListener("click", () => downloadWord([templates[current]]).catch(fail));
   window.addEventListener("resize", fitPreview);
   document.getElementById("forgetSchool").addEventListener("click", () => {
     const m = /^saved:(\d+)$/.exec(readForm(true).school || "");
