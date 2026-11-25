@@ -11,7 +11,8 @@ Fills the 5 South Africa visa letters for a student from one short form:
 You type about 20 details once. The page works out the rest: his/her, son/daughter,
 Mr/Ms/Mrs, S/O or D/O, wife/husband, sibling wording, the student's address in South Africa
 and amounts in words (Indian format, e.g. `45,00,000/- (Forty Five Lakh Only)`). You get the
-letters as PDF with the original Word layout (page size, alignment, lists, footer, page breaks).
+letters as A4 PDF with the original Word layout (margins, alignment, lists, footer). Pages break
+between paragraphs.
 
 Everything runs in your browser. Student details are not saved or sent anywhere.
 

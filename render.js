@@ -159,7 +159,7 @@
   function body(xml, styles, label, container) {
     const doc = parse(xml);
     const root = container ? doc.getElementsByTagNameNS(W, container)[0] : doc.documentElement;
-    return kids(root, "p").map((p) => paragraph(p, styles, label)).join("");
+    return kids(root, "p").map((p) => paragraph(p, styles, label));
   }
 
   // ---- Page --------------------------------------------------------------------------
@@ -174,47 +174,26 @@
   // ---- Pages -----------------------------------------------------------------------
 
   const px = (twips) => twips / 15;   // 1440 twips = 1 inch = 96 CSS px
+  // Printed on A4 (what the office prints on; Safari ignores a page size set in CSS).
+  // Margins still come from the letter.
+  const A4 = { w: 793, h: 1122 };     // 210 x 297 mm, rounded down so a page never spills onto a 2nd sheet of paper
 
-  // Lines of a laid-out paragraph as [top, bottom] in px from `origin`.
-  function lineBoxes(p, origin) {
-    const range = document.createRange();
-    range.selectNodeContents(p);
-    const lines = [];
-    for (const r of range.getClientRects()) {
-      if (!r.height) continue;
-      const top = r.top - origin, bottom = r.bottom - origin;
-      const line = lines.find((l) => top < l[1] - 1 && bottom > l[0] + 1);
-      if (line) { line[0] = Math.min(line[0], top); line[1] = Math.max(line[1], bottom); }
-      else lines.push([top, bottom]);
-    }
-    lines.sort((a, b) => a[0] - b[0]);
-    if (!lines.length) { const b = p.getBoundingClientRect(); lines.push([b.top - origin, b.bottom - origin]); }
-    return lines;
-  }
-
-  // Where each page starts, in px down the letter's text. Breaks between lines;
-  // like Word, never leaves a single line of a paragraph alone on a page.
-  function pageBreaks(flow, limit) {
+  // Index of the first paragraph on each page. Pages break between paragraphs only,
+  // so a page that prints a little taller than measured (Safari) runs into the bottom
+  // margin instead of cutting a line or adding an extra page.
+  // shortcut: a paragraph taller than a whole page is not split; none of the letters has one.
+  function pageStarts(flow, limit) {
     const origin = flow.getBoundingClientRect().top;
-    const cuts = [0];
-    for (const p of flow.children) {
-      const lines = lineBoxes(p, origin);
-      const pTop = p.getBoundingClientRect().top - origin;
-      for (;;) {
-        const start = cuts[cuts.length - 1];
-        const k = lines.findIndex((l) => l[1] - start > limit + 0.5);
-        if (k < 0) break;
-        let at = k;
-        if (at === 1 && lines.length > 1) at = 0;                       // orphan: move the whole paragraph
-        else if (at >= 2 && lines.length - at === 1) at -= 1;           // widow: take one more line along
-        const cut = at === 0 ? Math.max(pTop, start) : (lines[at - 1][1] + lines[at][0]) / 2;
-        if (cut <= start + 1) { cuts.push(lines[k][0]); break; }        // a line taller than a page: give up splitting
-        cuts.push(cut);
-        lines.splice(0, at);
-        if (at === 0) break;
+    const starts = [0];
+    let top = 0;
+    [...flow.children].forEach((p, i) => {
+      const box = p.getBoundingClientRect();
+      if (i > starts[starts.length - 1] && box.bottom - origin - top > limit) {
+        starts.push(i);
+        top = box.top - origin;
       }
-    }
-    return cuts;
+    });
+    return starts;
   }
 
   // files: { "word/document.xml": xml, "word/styles.xml": ..., "word/numbering.xml": ...,
@@ -226,8 +205,7 @@
     const label = numbering(files["word/numbering.xml"]);
     const doc = parse(files["word/document.xml"]);
     const sect = doc.getElementsByTagNameNS(W, "sectPr")[0];
-    const sz = kid(sect, "pgSz"), mar = kid(sect, "pgMar");
-    const page = { w: px(num(sz, "w") || 12240), h: px(num(sz, "h") || 15840) };
+    const mar = kid(sect, "pgMar");
     const m = {};
     for (const [k, d] of Object.entries({ top: 1440, bottom: 1440, left: 1440, right: 1440, header: 720, footer: 720 })) m[k] = px(num(mar, k) ?? d);
     const titlePg = on(kid(sect, "titlePg"));
@@ -237,28 +215,26 @@
       const refs = kids(sect, tag);
       const ref = refs.find((r) => val(r, "type") === (first && titlePg ? "first" : "default"));
       const xml = ref && files[link[ref.getAttributeNS(R, "id")]];
-      const html = xml ? decorate(body(xml, styles, label)) : "";
+      const html = xml ? decorate(body(xml, styles, label).join("")) : "";
       return html.replace(/<[^>]+>|\s/g, "") ? html : "";
     };
-    const flowHtml = decorate(body(files["word/document.xml"], styles, label, "body"));
-    const width = page.w - m.left - m.right, limit = page.h - m.top - m.bottom;
+    const paras = body(files["word/document.xml"], styles, label, "body").map(decorate);
+    const width = A4.w - m.left - m.right, limit = A4.h - m.top - m.bottom;
 
     const probe = document.createElement("div");
     probe.className = "sheet";
     probe.style.cssText = `position:absolute;left:-10000px;top:0;visibility:hidden;zoom:1;width:${width}px`;
-    probe.innerHTML = `<div class="flow">${flowHtml}</div>`;
+    probe.innerHTML = `<div class="flow">${paras.join("")}</div>`;
     document.body.appendChild(probe);
-    const cuts = pageBreaks(probe.firstChild, limit);
-    const total = probe.firstChild.getBoundingClientRect().height;
+    const starts = pageStarts(probe.firstChild, limit);
     probe.remove();
 
-    return cuts.map((cut, i) => {
-      const height = Math.min((cuts[i + 1] ?? total) - cut, limit);
+    return starts.map((start, i) => {
       const header = part("headerReference", i === 0), footer = part("footerReference", i === 0);
       const box = (style, html) => `<div class="hf" style="left:${m.left}px;right:${m.right}px;${style}">${html}</div>`;
-      return `<div class="sheet" style="width:${page.w}px;height:${page.h}px">` +
+      return `<div class="sheet" style="width:${A4.w}px;height:${A4.h}px">` +
         (header ? box(`top:${m.header}px`, header) : "") +
-        box(`top:${m.top}px;height:${height}px;overflow:hidden`, `<div class="flow" style="margin-top:${-cut}px">${flowHtml}</div>`) +
+        box(`top:${m.top}px`, `<div class="flow">${paras.slice(start, starts[i + 1]).join("")}</div>`) +
         (footer ? box(`bottom:${m.footer}px`, footer) : "") +
         "</div>";
     }).join("");
