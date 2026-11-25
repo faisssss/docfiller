@@ -1,8 +1,7 @@
-// Page wiring: form -> live preview -> .docx downloads. Filling logic is in fill.js.
+// Page wiring: form -> live preview -> print to PDF. Filling logic is in fill.js, page layout in render.js.
 (function () {
   "use strict";
   const F = window.DocFill;
-  const W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
   const form = document.getElementById("form");
   const tabs = document.getElementById("tabs");
   const page = document.getElementById("page");
@@ -10,8 +9,9 @@
   // Private-use characters mark filled / missing values inside the preview text.
   const OPEN = "", CLOSE = "", MISS_OPEN = "", MISS_CLOSE = "";
 
-  let templates = [];   // { file, title, bytes, parts: { name: xml } }
+  let templates = [];   // { file, title, files: { name: xml }, parts: { name: xml } (the ones with placeholders) }
   let current = 0;
+  const LAYOUT_RE = /^word\/(styles|numbering)\.xml$|^word\/_rels\/document\.xml\.rels$/;
 
   function base64ToBytes(b64) {
     const bin = atob(b64);
@@ -24,12 +24,20 @@
     templates = await Promise.all(window.LETTER_TEMPLATES.map(async (t) => {
       const bytes = base64ToBytes(t.data);
       const zip = await JSZip.loadAsync(bytes);
-      const parts = {};
+      const files = {}, parts = {};
       for (const name of Object.keys(zip.files).sort()) {
-        if (F.PART_RE.test(name)) parts[name] = await zip.file(name).async("string");
+        if (F.PART_RE.test(name)) files[name] = parts[name] = await zip.file(name).async("string");
+        else if (LAYOUT_RE.test(name)) files[name] = await zip.file(name).async("string");
       }
-      return { file: t.file, title: t.title, bytes, parts };
+      await DocRender.loadEmbeddedFonts(zip);
+      return { file: t.file, title: t.title, files, parts };
     }));
+  }
+
+  function filledFiles(t, values) {
+    const out = Object.assign({}, t.files);
+    for (const [name, xml] of Object.entries(t.parts)) out[name] = F.fillXml(xml, values);
+    return out;
   }
 
   // ---- Saved "Other" schools (this browser only) ----------------------------
@@ -99,10 +107,6 @@
 
   // ---- Preview -------------------------------------------------------------
 
-  function escapeHtml(s) {
-    return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  }
-
   function markedValues(values) {
     const out = {};
     for (const [k, v] of Object.entries(values)) {
@@ -113,56 +117,24 @@
     return out;
   }
 
-  function runHtml(r) {
-    let text = "";
-    for (const c of r.childNodes) {
-      if (c.namespaceURI !== W) continue;
-      if (c.localName === "t") text += escapeHtml(c.textContent);
-      else if (c.localName === "br") text += "\n";
-      else if (c.localName === "tab") text += "    ";
-    }
-    const pr = r.getElementsByTagNameNS(W, "rPr")[0];
-    const on = (tag) => {
-      const el = pr && pr.getElementsByTagNameNS(W, tag)[0];
-      const v = el && el.getAttributeNS(W, "val");
-      return el && v !== "0" && v !== "false" && v !== "none";
-    };
-    const va = pr && pr.getElementsByTagNameNS(W, "vertAlign")[0];
-    if (va && va.getAttributeNS(W, "val") === "superscript") text = `<sup>${text}</sup>`;
-    if (on("u")) text = `<u>${text}</u>`;
-    if (on("b")) text = `<b>${text}</b>`;
-    return text;
+  // Pages are laid out at real size (8.5in wide) and zoomed to fit the preview column.
+  function fitPreview() {
+    const pages = page.firstElementChild;
+    if (!pages) return;
+    pages.style.zoom = 1;
+    pages.style.zoom = Math.min(1, (page.clientWidth - 24) / pages.offsetWidth);
   }
 
-  function paragraphsHtml(xml) {
-    const doc = new DOMParser().parseFromString(xml, "application/xml");
-    let html = "";
-    for (const p of doc.getElementsByTagNameNS(W, "p")) {
-      let inner = "";
-      for (const r of p.getElementsByTagNameNS(W, "r")) inner += runHtml(r);
-      inner = inner
-        .replace(/ {6,}/g, '<span class="gap"></span>')
-        .replace(/\n/g, "<br>")
-        .replace(//g, "<mark>").replace(//g, "</mark>")
-        .replace(//g, '<mark class="miss">').replace(//g, "</mark>");
-      const listed = p.getElementsByTagNameNS(W, "numPr").length > 0;
-      html += listed ? `<p class="li">•&nbsp;&nbsp;${inner}</p>` : `<p>${inner}</p>`;
-    }
-    return html;
+  function highlight(html) {
+    return html.split(OPEN).join("<mark>").split(CLOSE).join("</mark>")
+      .split(MISS_OPEN).join('<mark class="miss">').split(MISS_CLOSE).join("</mark>");
   }
 
   function renderPreview() {
     const t = templates[current];
     if (!t) return;
-    const values = valuesFor(t);
-    const marked = markedValues(values);
-    let html = "", foot = "";
-    for (const [name, xml] of Object.entries(t.parts)) {
-      const part = paragraphsHtml(F.fillXml(xml, marked));
-      if (name === "word/document.xml") html = part;
-      else if (part.replace(/<[^>]+>|\s/g, "")) foot += part;
-    }
-    page.innerHTML = html + (foot ? `<div class="foot">${foot}</div>` : "");
+    page.innerHTML = '<div class="pages">' + DocRender.renderPages(filledFiles(t, markedValues(valuesFor(t))), highlight) + "</div>";
+    fitPreview();
 
     const missing = new Set();
     for (const tt of templates) missingFor(tt, valuesFor(tt)).forEach((m) => missing.add(m));
@@ -199,48 +171,24 @@
     return (s || "Student").replace(/[\\/:*?"<>|]+/g, " ").trim();
   }
 
-  function save(blob, filename) {
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
-  }
-
   function confirmMissing(list) {
     const missing = new Set();
     for (const t of list) missingFor(t, valuesFor(t)).forEach((m) => missing.add(m));
     return !missing.size || window.confirm("These are still empty and will be left blank:\n\n• " +
-      [...missing].join("\n• ") + "\n\nDownload anyway?");
+      [...missing].join("\n• ") + "\n\nContinue anyway?");
   }
 
-  async function withBusy(fn) {
-    const buttons = document.querySelectorAll("button");
-    buttons.forEach((b) => (b.disabled = true));
-    try { await fn(); } catch (e) { alert("Something went wrong: " + e.message); }
-    finally { buttons.forEach((b) => (b.disabled = false)); }
-  }
-
-  async function downloadAll() {
-    if (!confirmMissing(templates)) return;
-    const student = safeName(readForm().sName);
-    const out = new JSZip();
-    for (const t of templates) {
-      const { data } = await F.fillDocx(JSZip, t.bytes, valuesFor(t));
-      out.file(`${student} - ${t.file[0]}. ${t.title}.docx`, data);
-    }
-    save(await out.generateAsync({ type: "blob" }), `${student} - Visa Letters.zip`);
+  // The browser's print window turns the pages into a PDF ("Save as PDF");
+  // the page title becomes the suggested file name.
+  function printLetters(list, name) {
+    if (!confirmMissing(list)) return;
+    const area = document.getElementById("print");
+    area.innerHTML = list.map((t) => DocRender.renderPages(filledFiles(t, valuesFor(t)))).join("");
+    const title = document.title;
+    document.title = name;
+    window.addEventListener("afterprint", () => { document.title = title; area.innerHTML = ""; }, { once: true });
     rememberOtherSchool();
-  }
-
-  async function downloadOne() {
-    const t = templates[current];
-    if (!confirmMissing([t])) return;
-    const { data } = await F.fillDocx(JSZip, t.bytes, valuesFor(t));
-    save(new Blob([data], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" }),
-      `${safeName(readForm().sName)} - ${t.title}.docx`);
-    rememberOtherSchool();
+    window.print();
   }
 
   // ---- Setup ---------------------------------------------------------------
@@ -261,8 +209,15 @@
 
   form.addEventListener("input", update);
   form.addEventListener("change", update);
-  form.addEventListener("submit", (e) => { e.preventDefault(); withBusy(downloadAll); });
-  document.getElementById("downloadOne").addEventListener("click", () => withBusy(downloadOne));
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    printLetters(templates, `${safeName(readForm().sName)} - Visa Letters`);
+  });
+  document.getElementById("downloadOne").addEventListener("click", () => {
+    const t = templates[current];
+    printLetters([t], `${safeName(readForm().sName)} - ${t.title}`);
+  });
+  window.addEventListener("resize", fitPreview);
   document.getElementById("forgetSchool").addEventListener("click", () => {
     const m = /^saved:(\d+)$/.exec(readForm(true).school || "");
     const list = loadSchools();

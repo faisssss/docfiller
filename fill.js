@@ -26,7 +26,7 @@
     propValue: "Property value", propWords: "Property value", goldSov: "Gold (sovereigns)",
     goldValue: "Gold value", goldWords: "Gold value", incomeValue: "Annual income",
     incomeWords: "Annual income", footMob: "Mobile no.", footEmail: "Email",
-    school: "School name", airfield: "School town", sa1: "School address",
+    school: "School name", airfield: "School town", sa1: "Student's address in SA",
   };
 
   // ---- Numbers ---------------------------------------------------------

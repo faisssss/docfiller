@@ -9,9 +9,9 @@ Fills the 5 South Africa visa letters for a student from one short form:
 5. Covering Letter for Study Visa
 
 You type about 20 details once. The page works out the rest: his/her, son/daughter,
-Mr/Ms/Mrs, S/O or D/O, wife/husband, sibling wording, school addresses and amounts in words
-(Indian format, e.g. `45,00,000/- (Forty Five Lakh Only)`). You get the letters as Word files
-with the original layout, and the filled text is black.
+Mr/Ms/Mrs, S/O or D/O, wife/husband, sibling wording, the student's address in South Africa
+and amounts in words (Indian format, e.g. `45,00,000/- (Forty Five Lakh Only)`). You get the
+letters as PDF with the original Word layout (page size, alignment, lists, footer, page breaks).
 
 Everything runs in your browser. Student details are not saved or sent anywhere.
 
@@ -21,7 +21,10 @@ Everything runs in your browser. Student details are not saved or sent anywhere.
 - **Offline:** download this repo and double-click `index.html`.
 
 Fill the form, check the live preview (blue = filled, red = still empty), then press
-**Download all 5 letters**. Press **Clear** before the next student.
+**Save all 5 letters as PDF** (one PDF, each letter starting on a new page) or
+**Save just this letter as PDF**. The browser's print window opens: choose **Save as PDF**
+as the destination (Safari on a Mac: **PDF ▾ → Save as PDF**, bottom left). The file name
+is filled in with the student's name. Press **Clear** before the next student.
 
 ## Built-in choices
 
@@ -29,7 +32,7 @@ Fill the form, check the live preview (blue = filled, red = still empty), then p
 |---|---|
 | Date | Today's date by default; tick "Leave blank" to keep `    /    /2026` for writing by hand |
 | Footer phone/email | The student's, on all 5 letters |
-| School | Mach1 or Worcester built in. **Other…** asks for name, airfield/town and SA address; after a download it is saved in that browser as its own button (remove it with **Remove this saved school**). Saved schools are per browser, not shared between colleagues. |
+| School | Mach1 or Worcester built in. **Other…** asks for name, airfield/town and the student's address in South Africa (where they will stay); after a download it is saved in that browser as its own button (remove it with **Remove this saved school**). Saved schools are per browser, not shared between colleagues. |
 | No siblings | The "and his/her sibling…" part is left out |
 | Business income | "salary" wording becomes "revenue from the business" / "business" |
 | S/O / D/O | Uses the sponsoring parent's name |
@@ -65,9 +68,10 @@ templates. Edit it in `originals/` and rebuild.
 | Path | What it is |
 |---|---|
 | `index.html`, `app.js` | The page: form, preview, downloads |
-| `fill.js` | Wording rules, amounts in words, filling the .docx |
+| `fill.js` | Wording rules, amounts in words, filling the templates |
+| `render.js` | Lays a filled letter out as pages like Word does, for the preview and the PDF |
 | `templates/`, `templates.js` | Generated placeholder templates (don't edit by hand) |
 | `originals/` | Your original templates with red text |
 | `tools/build_templates.py` | Turns `originals/` into `templates/` |
 | `tests/` | `npm test` fills every letter for sample students and checks the wording |
-| `vendor/jszip.min.js` | [JSZip](https://stuk.github.io/jszip/) 3.10.1 (MIT), for reading/writing .docx |
+| `vendor/jszip.min.js` | [JSZip](https://stuk.github.io/jszip/) 3.10.1 (MIT), for reading the .docx templates |

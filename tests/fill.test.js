@@ -135,7 +135,7 @@ test("other school uses the typed name, town and address", async () => {
   const c = (await fillText("5_Covering_Letter", other)).text;
   assert.ok(c.includes("flight school Skyhawk Aviation at 12 Runway Rd, Midrand 1685, South Africa."));
   const { missing } = await fillText("3_Affidavit_of_Support", Object.assign({}, other, { oTown: "", oAddress: "" }));
-  assert.deepStrictEqual(missing.sort(), ["School address", "School town"]);
+  assert.deepStrictEqual(missing.sort(), ["School town", "Student's address in SA"]);
 });
 
 test("missing fields are reported", async () => {
