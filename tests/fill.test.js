@@ -9,12 +9,11 @@ const F = require("../fill.js");
 const ROOT = path.join(__dirname, "..");
 const FILES = ["1_Sponsorship_Letter", "2_Self_Affidavit", "3_Affidavit_of_Support", "4_Financial_Support_Letter",
   "5_Covering_Letter"];
-const STUDENT_SIGNED = ["2_Self_Affidavit", "5_Covering_Letter"];
 
 const SON_FATHER = {
   sName: "Arjun Nair", sGender: "son", passport: "z1234567", sMobile: "9000000001", sEmail: "arjun@example.com",
   sponsor: "father", pName: "Ravi Nair", spName: "Lekha Nair", pAge: "52", pProfession: "Engineer",
-  incomeType: "salary", pMobile: "9000000002", pEmail: "ravi@example.com",
+  incomeType: "salary",
   siblings: "Anand Nair", address: "Thekkethil House, Kakkanad, Ernakulam, Kerala 682030",
   school: "mach1", propCents: "25", propPlace: "Kakkanad", propDistrict: "Ernakulam",
   propValue: "4500000", goldValue: "12,50,000", goldSov: "40", incomeValue: "1800000", date: "2026-10-23",
@@ -28,7 +27,7 @@ const DAUGHTER_MOTHER = Object.assign({}, SON_FATHER, {
 
 async function fillText(file, form) {
   const bytes = fs.readFileSync(path.join(ROOT, "templates", file + ".docx"));
-  const { data, missing } = await F.fillDocx(JSZip, bytes, F.valuesFor(file, F.computeValues(form)));
+  const { data, missing } = await F.fillDocx(JSZip, bytes, F.computeValues(form));
   const zip = await JSZip.loadAsync(data);
   let text = "";
   for (const name of Object.keys(zip.files).filter((n) => F.PART_RE.test(n)).sort()) {
@@ -63,7 +62,7 @@ for (const file of FILES) {
     assert.ok(text.includes("Arjun Nair"));
     assert.ok(text.includes("Mach1 Aviation Academy"));
     assert.ok(!/\bher\b|\bshe\b|\bdaughter|Mrs\. Ravi/.test(text), "wrong gender wording");
-    assert.ok(text.includes(STUDENT_SIGNED.includes(file) ? "9000000001" : "9000000002"));
+    assert.ok(text.includes("9000000001") && text.includes("arjun@example.com"), "student contact in footer");
     assert.ok(text.includes("23/10/2026"));
   });
 
@@ -121,6 +120,22 @@ test("covering letter wording", async () => {
   assert.ok(b.includes("Date:     /    /2026"));
   assert.ok(b.includes("I will be funded by my mother for my course"));
   assert.ok(b.includes("flight school Worcester Flying School at Vreugde Avenue 6, Worcester West, 850, South Africa."));
+});
+
+test("other school uses the typed name, town and address", async () => {
+  const other = Object.assign({}, SON_FATHER, { school: "other", oSchool: "Skyhawk Aviation",
+    oTown: "Grand Central", oAddress: "12 Runway Rd, Midrand 1685" });
+  for (const file of FILES) {
+    const { text, missing } = await fillText(file, other);
+    assert.deepStrictEqual(missing, [], file);
+    assert.ok(text.includes("Skyhawk Aviation") && !text.includes("Mach1"), file);
+  }
+  const s = (await fillText("2_Self_Affidavit", other)).text;
+  assert.ok(s.includes("Skyhawk Aviation, Grand Central Airfield"));
+  const c = (await fillText("5_Covering_Letter", other)).text;
+  assert.ok(c.includes("flight school Skyhawk Aviation at 12 Runway Rd, Midrand 1685, South Africa."));
+  const { missing } = await fillText("3_Affidavit_of_Support", Object.assign({}, other, { oTown: "", oAddress: "" }));
+  assert.deepStrictEqual(missing.sort(), ["School address", "School town"]);
 });
 
 test("missing fields are reported", async () => {

@@ -32,7 +32,48 @@
     }));
   }
 
-  function readForm() {
+  // ---- Saved "Other" schools (this browser only) ----------------------------
+
+  const SCHOOLS_KEY = "docfiller.schools";
+  const schoolsBox = document.getElementById("schools");
+  const otherLabel = schoolsBox.querySelector('input[value="other"]').parentElement;
+
+  function loadSchools() {
+    try { const list = JSON.parse(localStorage.getItem(SCHOOLS_KEY)); return Array.isArray(list) ? list : []; }
+    catch (e) { return []; }
+  }
+
+  function storeSchools(list) {
+    try { localStorage.setItem(SCHOOLS_KEY, JSON.stringify(list)); } catch (e) { /* private window: not saved */ }
+  }
+
+  function renderSavedSchools(select) {
+    schoolsBox.querySelectorAll("[data-saved]").forEach((l) => l.remove());
+    loadSchools().forEach((s, i) => {
+      const label = document.createElement("label");
+      label.dataset.saved = "";
+      label.innerHTML = '<input type="radio" name="school"><span></span>';
+      label.firstChild.value = "saved:" + i;
+      label.firstChild.checked = select === i;
+      label.lastChild.textContent = s.school;
+      schoolsBox.insertBefore(label, otherLabel);
+    });
+  }
+
+  // When an "Other" school is used for a download, remember it.
+  function rememberOtherSchool() {
+    const d = readForm(true);
+    if (d.school !== "other") return;
+    const s = { school: d.oSchool.trim(), town: d.oTown.trim(), address: d.oAddress.trim() };
+    if (!s.school || !s.town || !s.address) return;
+    const list = loadSchools().filter((x) => x.school.toLowerCase() !== s.school.toLowerCase());
+    list.push(s);
+    storeSchools(list);
+    renderSavedSchools(list.length - 1);
+    update();
+  }
+
+  function readForm(raw) {
     const data = {};
     for (const el of form.elements) {
       if (!el.name) continue;
@@ -40,11 +81,14 @@
       else if (el.type === "checkbox") data[el.name] = el.checked;
       else data[el.name] = el.value;
     }
+    const saved = !raw && /^saved:(\d+)$/.exec(data.school || "");
+    const s = saved && loadSchools()[saved[1]];
+    if (s) Object.assign(data, { school: "other", oSchool: s.school, oTown: s.town, oAddress: s.address });
     return data;
   }
 
-  function valuesFor(t) {
-    return F.valuesFor(t.file, F.computeValues(readForm()));
+  function valuesFor() {
+    return F.computeValues(readForm());
   }
 
   function missingFor(t, values) {
@@ -187,6 +231,7 @@
       out.file(`${student} - ${t.file[0]}. ${t.title}.docx`, data);
     }
     save(await out.generateAsync({ type: "blob" }), `${student} - Visa Letters.zip`);
+    rememberOtherSchool();
   }
 
   async function downloadOne() {
@@ -195,6 +240,7 @@
     const { data } = await F.fillDocx(JSZip, t.bytes, valuesFor(t));
     save(new Blob([data], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" }),
       `${safeName(readForm().sName)} - ${t.title}.docx`);
+    rememberOtherSchool();
   }
 
   // ---- Setup ---------------------------------------------------------------
@@ -206,6 +252,9 @@
 
   function update() {
     form.elements.date.disabled = form.elements.dateBlank.checked;
+    const school = readForm(true).school || "";
+    document.getElementById("otherSchool").hidden = school !== "other";
+    document.getElementById("savedNote").hidden = !school.startsWith("saved:");
     renderAmountWords();
     renderPreview();
   }
@@ -214,6 +263,16 @@
   form.addEventListener("change", update);
   form.addEventListener("submit", (e) => { e.preventDefault(); withBusy(downloadAll); });
   document.getElementById("downloadOne").addEventListener("click", () => withBusy(downloadOne));
+  document.getElementById("forgetSchool").addEventListener("click", () => {
+    const m = /^saved:(\d+)$/.exec(readForm(true).school || "");
+    const list = loadSchools();
+    if (!m || !list[m[1]] || !window.confirm(`Remove "${list[m[1]].school}" from the saved schools?`)) return;
+    list.splice(Number(m[1]), 1);
+    storeSchools(list);
+    renderSavedSchools();
+    form.elements.school.value = "mach1";
+    update();
+  });
   document.getElementById("clear").addEventListener("click", () => {
     if (!window.confirm("Clear the form for the next student?")) return;
     form.reset();
@@ -223,6 +282,7 @@
   });
 
   form.elements.date.value = today();
+  renderSavedSchools();
   loadTemplates().then(() => { renderTabs(); update(); })
     .catch((e) => { status.className = "status warn"; status.textContent = "Could not load the templates: " + e.message; });
 })();

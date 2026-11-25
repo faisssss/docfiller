@@ -28,7 +28,8 @@ Fill the form, check the live preview (blue = filled, red = still empty), then p
 | Field | Behaviour |
 |---|---|
 | Date | Today's date by default; tick "Leave blank" to keep `    /    /2026` for writing by hand |
-| Footer phone/email | Student's on the Self Affidavit and Covering Letter, parent's on the other 3 |
+| Footer phone/email | The student's, on all 5 letters |
+| School | Mach1 or Worcester built in. **Other…** asks for name, airfield/town and SA address; after a download it is saved in that browser as its own button (remove it with **Remove this saved school**). Saved schools are per browser, not shared between colleagues. |
 | No siblings | The "and his/her sibling…" part is left out |
 | Business income | "salary" wording becomes "revenue from the business" / "business" |
 | S/O / D/O | Uses the sponsoring parent's name |

@@ -38,6 +38,9 @@
   .seg input { position: absolute; opacity: 0; pointer-events: none; }
   .seg span { display: block; padding: 8px 6px; text-align: center; cursor: pointer; background: #fff; }
   .seg label + label span { border-left: 1px solid var(--line); }
+  .seg.wrap { flex-wrap: wrap; }
+  .seg.wrap label { flex: 1 1 45%; }
+  .seg.wrap label span { border-left: 0; box-shadow: -1px -1px 0 var(--line); }
   .seg input:checked + span { background: var(--accent); color: var(--accent-ink); }
   .seg input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: -3px; }
   .check { display: flex; gap: 8px; align-items: center; font-weight: 500; }
@@ -86,7 +89,7 @@
         <label>Passport no. <input type="text" name="passport" required></label>
       </div>
       <div class="row">
-        <label>Student mobile <small>(Self Affidavit &amp; Covering Letter footer)</small><input type="tel" name="sMobile" required></label>
+        <label>Student mobile <small>(footer of every letter)</small><input type="tel" name="sMobile" required></label>
         <label>Student email <input type="email" name="sEmail" required></label>
       </div>
     </section>
@@ -111,10 +114,6 @@
           <label><input type="radio" name="incomeType" value="salary" checked><span>Salary</span></label>
           <label><input type="radio" name="incomeType" value="business"><span>Business</span></label>
         </div><br></div>
-      <div class="row">
-        <label>Parent mobile <small>(other letters' footer)</small><input type="tel" name="pMobile" required></label>
-        <label>Parent email <input type="email" name="pEmail" required></label>
-      </div>
     </section>
 
     <section>
@@ -125,10 +124,18 @@
 
     <section>
       <h2>School</h2>
-      <div class="seg" role="radiogroup">
+      <div class="seg wrap" role="radiogroup" id="schools">
         <label><input type="radio" name="school" value="mach1" checked><span>Mach1 · Springs</span></label>
         <label><input type="radio" name="school" value="worcester"><span>Worcester Flying School</span></label>
+        <label><input type="radio" name="school" value="other"><span>Other…</span></label>
       </div><br>
+      <div id="otherSchool" hidden>
+        <label>School name <input type="text" name="oSchool" placeholder="e.g. Skyhawk Aviation"></label>
+        <label>Airfield / town <small>(the letters add "Airfield" after it)</small><input type="text" name="oTown" placeholder="e.g. Grand Central"></label>
+        <label>School address in South Africa <small>(without "South Africa")</small><input type="text" name="oAddress"></label>
+        <p class="note">Saved in this browser when you download, so it shows up as a button next time.</p>
+      </div>
+      <p class="note" id="savedNote" hidden><button type="button" id="forgetSchool" style="padding:4px 10px;font-size:12.5px">Remove this saved school</button></p>
     </section>
 
     <section>

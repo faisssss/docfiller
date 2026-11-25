@@ -26,6 +26,7 @@
     propValue: "Property value", propWords: "Property value", goldSov: "Gold (sovereigns)",
     goldValue: "Gold value", goldWords: "Gold value", incomeValue: "Annual income",
     incomeWords: "Annual income", footMob: "Mobile no.", footEmail: "Email",
+    school: "School name", airfield: "School town", sa1: "School address",
   };
 
   // ---- Numbers ---------------------------------------------------------
@@ -108,7 +109,9 @@
     const isSon = form.sGender !== "daughter";
     const isFather = form.sponsor !== "mother";
     const business = form.incomeType === "business";
-    const school = SCHOOLS[form.school] || SCHOOLS.mach1;
+    const school = form.school === "other"
+      ? { school: t("oSchool"), airfield: t("oTown"), sa: [t("oAddress"), "", ""] }
+      : SCHOOLS[form.school] || SCHOOLS.mach1;
     const his = isSon ? "his" : "her";
     const siblings = t("siblings").split(/,|\band\b|\n/).map((s) => s.trim()).filter(Boolean);
     const lines = addressLines(form.address);
@@ -147,24 +150,16 @@
       propValue: prop.value, propWords: prop.words,
       goldSov: t("goldSov"), goldValue: gold.value, goldWords: gold.words,
       incomeValue: income.value, incomeWords: income.words,
-      // Footer contact: the student's on the letters the student signs, the parent's elsewhere.
-      parentContact: { footMob: t("pMobile"), footEmail: t("pEmail") },
-      studentContact: { footMob: t("sMobile"), footEmail: t("sEmail") },
+      // Footer contact is the student's on every letter.
+      footMob: t("sMobile"), footEmail: t("sEmail"),
     };
-  }
-
-  const STUDENT_LETTERS = new Set(["2_Self_Affidavit", "5_Covering_Letter"]);
-
-  function valuesFor(file, values) {
-    const contact = STUDENT_LETTERS.has(file) ? values.studentContact : values.parentContact;
-    return Object.assign({}, values, contact);
   }
 
   // ---- Filling the .docx -------------------------------------------------
 
   const PART_RE = /^word\/(document|header\d+|footer\d+)\.xml$/;
   // sa2/sa3 are legitimately empty for Worcester; siblings may be none.
-  const OPTIONAL = new Set(["siblingClause", "sa1", "sa2", "sa3"]);
+  const OPTIONAL = new Set(["siblingClause", "sa2", "sa3"]);
 
   function escapeXml(s) {
     return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -198,7 +193,7 @@
   }
 
   const api = { SCHOOLS, LABELS, OPTIONAL, amountInWords, formatIndian, parseAmount, addressLines,
-    computeValues, valuesFor, fillXml, fillDocx, PART_RE };
+    computeValues, fillXml, fillDocx, PART_RE };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.DocFill = api;
 })(typeof window !== "undefined" ? window : globalThis);
