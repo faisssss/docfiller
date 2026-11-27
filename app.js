@@ -130,16 +130,29 @@
       .split(MISS_OPEN).join('<mark class="miss">').split(MISS_CLOSE).join("</mark>");
   }
 
+  // Letters typed over in the preview: index -> body paragraph HTML. Used for the PDF only;
+  // such a letter stops following the form until Reset.
+  let edited = {};
+  const resetBtn = document.getElementById("resetLetter");
+
   function renderPreview() {
     const t = templates[current];
     if (!t) return;
-    page.innerHTML = '<div class="pages">' + DocRender.renderPages(filledFiles(t, markedValues(valuesFor(t))), highlight) + "</div>";
+    const scroll = page.scrollTop;
+    page.innerHTML = '<div class="pages">' +
+      DocRender.renderPages(filledFiles(t, markedValues(valuesFor(t))), highlight, edited[current]) + "</div>";
+    page.querySelectorAll(".flow").forEach((f) => {
+      try { f.contentEditable = "plaintext-only"; } catch (e) { f.contentEditable = "true"; }  // older Firefox
+    });
+    page.scrollTop = scroll;
+    resetBtn.hidden = !edited[current];
     fitPreview();
 
     const missing = new Set();
     for (const tt of templates) missingFor(tt, valuesFor(tt)).forEach((m) => missing.add(m));
     status.className = "status" + (missing.size ? " warn" : "");
-    status.textContent = missing.size ? "Still empty: " + [...missing].join(", ") : "All fields filled — ready to download.";
+    status.textContent = (edited[current] ? "Edited by hand — form changes don't reach this letter until Reset. " : "") +
+      (missing.size ? "Still empty: " + [...missing].join(", ") : "All fields filled — ready to download.");
   }
 
   function renderTabs() {
@@ -148,7 +161,7 @@
       const b = document.createElement("button");
       b.type = "button";
       b.setAttribute("role", "tab");
-      b.textContent = `${i + 1}. ${t.title}`;
+      b.textContent = `${i + 1}. ${t.title}` + (edited[i] ? " ✎" : "");
       b.setAttribute("aria-selected", String(i === current));
       b.onclick = () => { current = i; renderTabs(); renderPreview(); };
       tabs.appendChild(b);
@@ -183,7 +196,8 @@
   function printLetters(list, name) {
     if (!confirmMissing(list)) return;
     const area = document.getElementById("print");
-    area.innerHTML = list.map((t) => DocRender.renderPages(filledFiles(t, valuesFor(t)))).join("");
+    area.innerHTML = list.map((t) => DocRender.renderPages(filledFiles(t, valuesFor(t)), undefined,
+      edited[templates.indexOf(t)])).join("");
     const title = document.title;
     document.title = name;
     window.addEventListener("afterprint", () => { document.title = title; area.innerHTML = ""; }, { once: true });
@@ -248,6 +262,19 @@
   document.getElementById("wordAll").addEventListener("click", () => downloadWord(templates).catch(fail));
   document.getElementById("wordOne").addEventListener("click", () => downloadWord([templates[current]]).catch(fail));
   window.addEventListener("resize", fitPreview);
+  page.addEventListener("input", () => {
+    const first = !edited[current];
+    edited[current] = [...page.querySelectorAll(".flow > .p")].map((p) => p.outerHTML);
+    if (first) { renderTabs(); resetBtn.hidden = false; }
+  });
+  // Re-split the pages once typing in a letter is done (text may have grown past a page).
+  page.addEventListener("focusout", () => { if (edited[current]) renderPreview(); });
+  resetBtn.addEventListener("click", () => {
+    if (!window.confirm("Undo your typed changes to this letter and fill it from the form again?")) return;
+    delete edited[current];
+    renderTabs();
+    renderPreview();
+  });
   document.getElementById("forgetSchool").addEventListener("click", () => {
     const m = /^saved:(\d+)$/.exec(readForm(true).school || "");
     const list = loadSchools();
@@ -261,6 +288,8 @@
   document.getElementById("clear").addEventListener("click", () => {
     if (!window.confirm("Clear the form for the next student?")) return;
     form.reset();
+    edited = {};
+    renderTabs();
     form.elements.date.value = today();
     update();
     window.scrollTo(0, 0);

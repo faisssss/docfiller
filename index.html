@@ -68,7 +68,10 @@
   .sheet .hf { position: absolute; }
   .page mark { background: var(--fill); color: inherit; border-radius: 2px; }
   .page mark.miss { background: var(--miss); color: var(--miss-ink); font: italic 9pt system-ui, sans-serif; padding: 0 3px; }
+  .sheet .flow:focus { outline: 1px dashed var(--accent); outline-offset: 4px; }
   #print { display: none; }
+  #print mark { background: none; color: inherit; }   /* highlights kept in hand-edited letters */
+  #print mark.miss { display: none; }
   @page { size: A4; margin: 0; }
   @media print {
     body { background: #fff; }
@@ -183,6 +186,7 @@
     <div class="tabs" id="tabs" role="tablist"></div>
     <p class="status" id="status"></p>
     <div class="page" id="page"></div>
+    <p class="note">You can click into the letter and type to change its wording (for the PDF only, not Word). <button type="button" id="resetLetter" hidden style="padding:4px 10px;font-size:12.5px">Reset this letter</button></p>
     <p class="note">Blue = filled from the form. Red = still empty (colours don't print). <button type="button" id="downloadOne" style="padding:4px 10px;font-size:12.5px">Save just this letter as PDF</button> <button type="button" id="wordOne" style="padding:4px 10px;font-size:12.5px">…as Word</button></p>
     <p class="note">The print window opens: set the printer/destination to <b>Save as PDF</b> (on a Mac in Safari: <b>PDF ▾ → Save as PDF</b>, bottom left).</p>
   </section>

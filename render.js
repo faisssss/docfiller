@@ -153,7 +153,8 @@
     const indent = pp.hanging ? -pp.hanging : (pp.firstLine || 0);
     const css = [`${fontCss(Object.assign({}, mark, { b: false, i: false, u: false, vert: null }))}`, `line-height:${lh}`,
       `text-align:${align}`, `padding:${pt(pp.before)} ${pt(pp.right)} ${pt(pp.after)} ${pt(pp.left)}`, `text-indent:${pt(indent)}`];
-    return `<div class="p" style="${css.join(";")}">${lbl}${inner || "<br>"}</div>`;
+    const brk = kid(pPr, "pageBreakBefore") && val(kid(pPr, "pageBreakBefore")) !== "0" ? " data-break" : "";
+    return `<div class="p"${brk} style="${css.join(";")}">${lbl}${inner || "<br>"}</div>`;
   }
 
   function body(xml, styles, label, container) {
@@ -191,7 +192,8 @@
     [...flow.children].forEach((p, i) => {
       const box = p.getBoundingClientRect();
       // Empty lines never start a page: trailing ones would make a page with only the footer.
-      if (i > starts[starts.length - 1] && box.bottom - origin - top > limit && p.textContent.trim()) {
+      if (i > starts[starts.length - 1] && (p.hasAttribute("data-break") ||
+          box.bottom - origin - top > limit && p.textContent.trim())) {
         starts.push(i);
         top = box.top - origin;
       }
@@ -202,8 +204,9 @@
   // files: { "word/document.xml": xml, "word/styles.xml": ..., "word/numbering.xml": ...,
   //          "word/_rels/document.xml.rels": ..., "word/footerN.xml": ... } with values already filled in.
   // decorate(html) may change the text HTML (e.g. highlight filled values) before the pages are measured.
+  // paras, if given, replaces the body paragraphs (HTML of the .p divs, e.g. typed over in the preview).
   // Returns the HTML of one .sheet per page.
-  function renderPages(files, decorate = (h) => h) {
+  function renderPages(files, decorate = (h) => h, paras = null) {
     const styles = styleSheet(files["word/styles.xml"]);
     const label = numbering(files["word/numbering.xml"]);
     const doc = parse(files["word/document.xml"]);
@@ -221,7 +224,7 @@
       const html = xml ? decorate(body(xml, styles, label).join("")) : "";
       return html.replace(/<[^>]+>|\s/g, "") ? html : "";
     };
-    const paras = body(files["word/document.xml"], styles, label, "body").map(decorate);
+    paras = paras || body(files["word/document.xml"], styles, label, "body").map(decorate);
     const width = A4.w - m.left - m.right, limit = A4.h - m.top - m.bottom;
 
     const probe = document.createElement("div");

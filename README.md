@@ -28,6 +28,9 @@ as the destination (Safari on a Mac: **PDF ▾ → Save as PDF**, bottom left). 
 is filled in with the student's name. For Word files instead, use **Word (.zip)** (all 5 letters)
 or **…as Word** (the letter on screen). Press **Clear** before the next student.
 
+To change a letter's wording for one student, click into the preview and type. The change goes into
+the PDF (not the Word files), and that letter stops following the form until you press **Reset this letter**.
+
 ## Built-in choices
 
 | Field | Behaviour |
