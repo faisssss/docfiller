@@ -49,16 +49,20 @@
   button { font: inherit; font-weight: 600; padding: 10px 16px; border-radius: 8px; border: 1px solid var(--line); background: #fff; color: var(--ink); cursor: pointer; }
   button.primary { flex: 1; background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
   button:disabled { opacity: .6; cursor: wait; }
+  #resetLetter:disabled { cursor: default; }
 
-  .preview { position: sticky; top: 12px; min-width: 0; }
+  /* The preview column fits the screen; the letter area scrolls inside it. */
+  .preview { position: sticky; top: 12px; min-width: 0; display: flex; flex-direction: column; max-height: calc(100vh - 24px); }
+  .tools { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+  .tools button { padding: 4px 10px; font-size: 12.5px; }
   .tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
   .tabs button { padding: 7px 12px; font-size: 13.5px; }
   .tabs button[aria-selected=true] { background: var(--ink); color: #fff; border-color: var(--ink); }
   .status { margin: 0 0 10px; font-size: 13.5px; color: var(--muted); }
   .status.warn { color: var(--miss-ink); }
   .page { background: #e4e7eb; border: 1px solid var(--line); border-radius: 4px; padding: 12px;
-          max-height: calc(100vh - 140px); overflow: auto; }
-  @media (max-width: 900px) { .preview { position: static; } .page { max-height: none; } }
+          flex: 1 1 auto; min-height: 240px; overflow: auto; }
+  @media (max-width: 900px) { .preview { position: static; max-height: none; } }
   /* Letter pages at real size (built by render.js). */
   .pages { width: max-content; margin: 0 auto; }
   .sheet { position: relative; box-sizing: border-box; background: #fff; color: #000; overflow: hidden;
@@ -185,9 +189,14 @@
   <section class="preview" aria-label="Preview">
     <div class="tabs" id="tabs" role="tablist"></div>
     <p class="status" id="status"></p>
+    <div class="tools">
+      <button type="button" id="resetLetter" disabled title="Becomes active after you type into the letter">Reset this letter</button>
+      <button type="button" id="downloadOne">Save just this letter as PDF</button>
+      <button type="button" id="wordOne">…as Word</button>
+    </div>
     <div class="page" id="page"></div>
-    <p class="note">You can click into the letter and type to change its wording (for the PDF only, not Word). <button type="button" id="resetLetter" hidden style="padding:4px 10px;font-size:12.5px">Reset this letter</button></p>
-    <p class="note">Blue = filled from the form. Red = still empty (colours don't print). <button type="button" id="downloadOne" style="padding:4px 10px;font-size:12.5px">Save just this letter as PDF</button> <button type="button" id="wordOne" style="padding:4px 10px;font-size:12.5px">…as Word</button></p>
+    <p class="note">Click into the letter and type to change its wording (PDF only, not Word); <b>Reset this letter</b> undoes it.
+      Blue = filled from the form. Red = still empty (colours don't print).</p>
     <p class="note">The print window opens: set the printer/destination to <b>Save as PDF</b> (on a Mac in Safari: <b>PDF ▾ → Save as PDF</b>, bottom left).</p>
   </section>
 </main>

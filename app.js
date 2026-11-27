@@ -145,7 +145,7 @@
       try { f.contentEditable = "plaintext-only"; } catch (e) { f.contentEditable = "true"; }  // older Firefox
     });
     page.scrollTop = scroll;
-    resetBtn.hidden = !edited[current];
+    resetBtn.disabled = !edited[current];
     fitPreview();
 
     const missing = new Set();
@@ -265,7 +265,7 @@
   page.addEventListener("input", () => {
     const first = !edited[current];
     edited[current] = [...page.querySelectorAll(".flow > .p")].map((p) => p.outerHTML);
-    if (first) { renderTabs(); resetBtn.hidden = false; }
+    if (first) { renderTabs(); resetBtn.disabled = false; }
   });
   // Re-split the pages once typing in a letter is done (text may have grown past a page).
   page.addEventListener("focusout", () => { if (edited[current]) renderPreview(); });
