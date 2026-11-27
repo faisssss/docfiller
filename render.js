@@ -176,7 +176,9 @@
   const px = (twips) => twips / 15;   // 1440 twips = 1 inch = 96 CSS px
   // Printed on A4 (what the office prints on; Safari ignores a page size set in CSS).
   // Margins still come from the letter.
-  const A4 = { w: 793, h: 1122 };     // 210 x 297 mm, rounded down so a page never spills onto a 2nd sheet of paper
+  // 210 x 297 mm is 793 x 1122.5 px. Sheets are kept ~6 mm shorter: at full height Safari spilled
+  // each one onto an extra blank page.
+  const A4 = { w: 793, h: 1100 };
 
   // Index of the first paragraph on each page. Pages break between paragraphs only,
   // so a page that prints a little taller than measured (Safari) runs into the bottom
@@ -188,7 +190,8 @@
     let top = 0;
     [...flow.children].forEach((p, i) => {
       const box = p.getBoundingClientRect();
-      if (i > starts[starts.length - 1] && box.bottom - origin - top > limit) {
+      // Empty lines never start a page: trailing ones would make a page with only the footer.
+      if (i > starts[starts.length - 1] && box.bottom - origin - top > limit && p.textContent.trim()) {
         starts.push(i);
         top = box.top - origin;
       }
